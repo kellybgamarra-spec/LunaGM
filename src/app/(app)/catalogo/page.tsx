@@ -6,7 +6,8 @@ import { supabase } from "@/lib/supabase/client"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ShoppingCart } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Search, ShoppingCart } from "lucide-react"
 import { toast } from "sonner"
 import { useCartStore } from "@/store/cart"
 
@@ -132,6 +133,9 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 export default function CatalogoPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("Todas")
+
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
@@ -145,6 +149,14 @@ export default function CatalogoPage() {
     }
   })
 
+  const categories = ["Todas", ...Array.from(new Set(products?.map(p => p.category) || []))]
+
+  const filteredProducts = products?.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.category.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = categoryFilter === "Todas" || p.category === categoryFilter
+    return matchesSearch && matchesCategory
+  })
+
   if (isLoading) {
     return <div className="flex justify-center p-10"><p className="text-muted-foreground">Cargando catálogo...</p></div>
   }
@@ -153,15 +165,38 @@ export default function CatalogoPage() {
     <div className="space-y-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Catálogo de Joyería</h1>
-        <p className="text-muted-foreground mt-2">Descubre nuestras últimas piezas y colecciones exclusivas.</p>
+        <p className="text-muted-foreground mt-2 mb-6">Descubre nuestras últimas piezas y colecciones exclusivas.</p>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar joyas..."
+              className="pl-8 glass-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={(val) => { if(val) setCategoryFilter(val) }}>
+            <SelectTrigger className="w-full sm:w-[200px] glass-input">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products?.map((product) => (
+        {filteredProducts?.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
 
-        {products?.length === 0 && (
+        {filteredProducts?.length === 0 && (
           <div className="col-span-full py-12 text-center">
             <p className="text-muted-foreground">No hay productos disponibles por el momento.</p>
           </div>
