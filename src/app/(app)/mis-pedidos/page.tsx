@@ -22,6 +22,7 @@ export default function MisPedidosPage() {
           order_items (
             quantity,
             unit_price,
+            selected_variant,
             products (
               name,
               image_url
@@ -117,7 +118,10 @@ export default function MisPedidosPage() {
                               <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-[10px] text-muted-foreground">Sin foto</div>
                             )}
                             <div>
-                              <p className="font-semibold text-sm">{item.products?.name || 'Producto eliminado'}</p>
+                              <p className="font-semibold text-sm">
+                                {item.products?.name || 'Producto eliminado'}
+                                {item.selected_variant?.size && <span className="text-xs text-muted-foreground ml-2 px-2 py-0.5 bg-muted rounded-md border border-border">Talla {item.selected_variant.size}</span>}
+                              </p>
                               <p className="text-xs text-muted-foreground">Cant: {item.quantity} x S/. {Number(item.unit_price).toFixed(2)}</p>
                             </div>
                           </div>

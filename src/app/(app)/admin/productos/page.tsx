@@ -12,16 +12,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner"
 import { Loader2, Plus, Search, Trash2, Pencil } from "lucide-react"
 
+export type ProductVariant = {
+  id: string
+  size: string
+  price: number
+  stock: number
+}
+
 type Product = {
   id: string
   name: string
   category: string
-  size: string
   material: string
   color: string
-  stock: number
-  price: number
   image_url: string
+  variants: ProductVariant[]
+  // Mantenemos por retrocompatibilidad visual si fuera necesario
+  size?: string
+  stock?: number
+  price?: number
 }
 
 export default function ProductosPage() {
@@ -35,13 +44,14 @@ export default function ProductosPage() {
   const [formData, setFormData] = useState({
     name: "",
     category: "",
-    size: "",
     material: "",
     color: "",
-    stock: 0,
-    price: 0,
     image_url: ""
   })
+  
+  const [variants, setVariants] = useState<ProductVariant[]>([
+    { id: crypto.randomUUID(), size: "Única", price: 0, stock: 0 }
+  ])
 
   // Fetch Products
   const { data: products, isLoading } = useQuery({
@@ -59,7 +69,7 @@ export default function ProductosPage() {
 
   // Mutations
   const createProduct = useMutation({
-    mutationFn: async (newProduct: Omit<Product, 'id'>) => {
+    mutationFn: async (newProduct: Partial<Product>) => {
       const { data, error } = await supabase
         .from('products')
         .insert([newProduct])
@@ -71,7 +81,7 @@ export default function ProductosPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin_products'] })
       toast.success("Producto guardado correctamente")
-      setFormData({ name: "", category: "", size: "", material: "", color: "", stock: 0, price: 0, image_url: "" })
+      resetForm()
     },
     onError: (error: any) => {
       toast.error("Error al guardar producto", { description: error.message })
@@ -92,8 +102,7 @@ export default function ProductosPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin_products'] })
       toast.success("Producto actualizado correctamente")
-      setFormData({ name: "", category: "", size: "", material: "", color: "", stock: 0, price: 0, image_url: "" })
-      setEditingId(null)
+      resetForm()
     },
     onError: (error: any) => {
       toast.error("Error al actualizar producto", { description: error.message })
@@ -114,10 +123,21 @@ export default function ProductosPage() {
     }
   })
 
+  const resetForm = () => {
+    setFormData({ name: "", category: "", material: "", color: "", image_url: "" })
+    setVariants([{ id: crypto.randomUUID(), size: "Única", price: 0, stock: 0 }])
+    setImageFile(null)
+    setEditingId(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.category) {
       toast.error("Por favor selecciona una categoría")
+      return
+    }
+    if (variants.length === 0) {
+      toast.error("Debe existir al menos una variante")
       return
     }
     setIsSubmitting(true)
@@ -126,7 +146,6 @@ export default function ProductosPage() {
       let finalImageUrl = formData.image_url
 
       if (imageFile) {
-        // Convertir la imagen a Base64 (texto)
         finalImageUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader()
           reader.readAsDataURL(imageFile)
@@ -135,12 +154,25 @@ export default function ProductosPage() {
         })
       }
 
-      if (editingId) {
-        await updateProduct.mutateAsync({ id: editingId, updatedProduct: { ...formData, image_url: finalImageUrl } })
-      } else {
-        await createProduct.mutateAsync({ ...formData, image_url: finalImageUrl })
+      // Calculamos valores genéricos por retrocompatibilidad
+      const totalStock = variants.reduce((acc, curr) => acc + curr.stock, 0)
+      const minPrice = Math.min(...variants.map(v => v.price))
+      const genericSize = variants.length > 1 ? "Varias" : variants[0]?.size
+
+      const payload = { 
+        ...formData, 
+        image_url: finalImageUrl, 
+        variants,
+        stock: totalStock,
+        price: minPrice,
+        size: genericSize
       }
-      setImageFile(null)
+
+      if (editingId) {
+        await updateProduct.mutateAsync({ id: editingId, updatedProduct: payload })
+      } else {
+        await createProduct.mutateAsync(payload)
+      }
     } catch (err: any) {
       toast.error("Error al guardar producto", { description: err.message })
     } finally {
@@ -163,13 +195,25 @@ export default function ProductosPage() {
     }
   }
 
+  const getTotalStock = (vars: ProductVariant[]) => vars?.reduce((acc, curr) => acc + curr.stock, 0) || 0
+  
+  const getPriceRange = (vars: ProductVariant[]) => {
+    if (!vars || vars.length === 0) return "S/. 0.00"
+    if (vars.length === 1) return `S/. ${vars[0].price.toFixed(2)}`
+    const prices = vars.map(v => v.price)
+    const min = Math.min(...prices)
+    const max = Math.max(...prices)
+    if (min === max) return `S/. ${min.toFixed(2)}`
+    return `S/. ${min.toFixed(2)} - ${max.toFixed(2)}`
+  }
+
   const filteredProducts = products?.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
 
   return (
     <div className="space-y-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Gestión de Productos</h1>
-        <p className="text-muted-foreground mt-2">Registra y administra el inventario de joyería.</p>
+        <p className="text-muted-foreground mt-2">Registra y administra el inventario de joyería y sus tallas.</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -235,16 +279,6 @@ export default function ProductosPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="size">Tamaño/Talla</Label>
-                  <Input 
-                    id="size" 
-                    placeholder="Ej. 7, 45cm"
-                    value={formData.size}
-                    onChange={(e) => setFormData({...formData, size: e.target.value})}
-                    className="glass-input"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="material">Material (Opcional)</Label>
                   <Input 
                     id="material" 
@@ -254,44 +288,82 @@ export default function ProductosPage() {
                     className="glass-input"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="color">Color (Opcional)</Label>
-                <Input 
-                  id="color" 
-                  placeholder="Ej. Dorado, Rojo"
-                  value={formData.color}
-                  onChange={(e) => setFormData({...formData, color: e.target.value})}
-                  className="glass-input"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="stock">Cantidad (Stock)</Label>
+                  <Label htmlFor="color">Color (Opcional)</Label>
                   <Input 
-                    id="stock" 
-                    type="number" 
-                    min="0"
-                    required
-                    value={formData.stock}
-                    onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value) || 0})}
+                    id="color" 
+                    placeholder="Ej. Dorado"
+                    value={formData.color}
+                    onChange={(e) => setFormData({...formData, color: e.target.value})}
                     className="glass-input"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Precio (S/.)</Label>
-                  <Input 
-                    id="price" 
-                    type="number" 
-                    step="0.01" 
-                    min="0"
-                    required
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
-                    className="glass-input"
-                  />
+              </div>
+
+              {/* Variantes (Tallas, Precios, Stock) */}
+              <div className="mt-6 space-y-3 p-4 border border-border/50 rounded-xl bg-muted/10">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-bold text-primary">Tallas, Precio y Stock</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs bg-background/50"
+                    onClick={() => setVariants([...variants, { id: crypto.randomUUID(), size: "", price: 0, stock: 0 }])}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Añadir Talla
+                  </Button>
+                </div>
+                
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {variants.map((v, index) => (
+                    <div key={v.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end bg-background p-2 rounded-lg border border-border/50">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Talla</Label>
+                        <Input 
+                          value={v.size} 
+                          onChange={(e) => {
+                            const newVars = [...variants]; newVars[index].size = e.target.value; setVariants(newVars)
+                          }} 
+                          className="h-8 text-xs glass-input" placeholder="Ej. 7, Única" required 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Precio</Label>
+                        <Input 
+                          type="number" step="0.01" min="0"
+                          value={v.price} 
+                          onChange={(e) => {
+                            const newVars = [...variants]; newVars[index].price = parseFloat(e.target.value) || 0; setVariants(newVars)
+                          }} 
+                          className="h-8 text-xs glass-input" required 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Stock</Label>
+                        <Input 
+                          type="number" min="0"
+                          value={v.stock} 
+                          onChange={(e) => {
+                            const newVars = [...variants]; newVars[index].stock = parseInt(e.target.value) || 0; setVariants(newVars)
+                          }} 
+                          className="h-8 text-xs glass-input" required 
+                        />
+                      </div>
+                      <Button 
+                        type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (variants.length > 1) {
+                            setVariants(variants.filter(variant => variant.id !== v.id))
+                          } else {
+                            toast.error("Debe existir al menos una talla (puede ser 'Única')")
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -306,11 +378,7 @@ export default function ProductosPage() {
                   type="button" 
                   variant="outline" 
                   className="w-full border-border/50 bg-background/50" 
-                  onClick={() => {
-                    setEditingId(null)
-                    setFormData({ name: "", category: "", size: "", material: "", color: "", stock: 0, price: 0, image_url: "" })
-                    setImageFile(null)
-                  }}
+                  onClick={resetForm}
                 >
                   Cancelar Edición
                 </Button>
@@ -347,8 +415,8 @@ export default function ProductosPage() {
                     <TableRow>
                       <TableHead>Producto</TableHead>
                       <TableHead>Categoría</TableHead>
-                      <TableHead>Material</TableHead>
-                      <TableHead className="text-right">Stock</TableHead>
+                      <TableHead>Tallas</TableHead>
+                      <TableHead className="text-right">Stock (Total)</TableHead>
                       <TableHead className="text-right">Precio</TableHead>
                       <TableHead className="text-center">Acciones</TableHead>
                     </TableRow>
@@ -361,68 +429,82 @@ export default function ProductosPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredProducts?.map((product) => (
-                        <TableRow key={product.id} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-3">
-                              {product.image_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={product.image_url} alt="" className="w-10 h-10 rounded-md object-cover" />
+                      filteredProducts?.map((product) => {
+                        const productVariants = product.variants || []
+                        const totalStock = getTotalStock(productVariants)
+                        const isMultipleSizes = productVariants.length > 1
+                        
+                        return (
+                          <TableRow key={product.id} className="hover:bg-muted/30">
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-3">
+                                {product.image_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={product.image_url} alt="" className="w-10 h-10 rounded-md object-cover" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center text-xs">Sin foto</div>
+                                )}
+                                <span className="truncate max-w-[150px]" title={product.name}>{product.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{product.category}</TableCell>
+                            <TableCell>
+                              {isMultipleSizes ? (
+                                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-semibold">
+                                  {productVariants.length} Tallas
+                                </span>
                               ) : (
-                                <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center text-xs">Sin foto</div>
+                                productVariants[0]?.size || '-'
                               )}
-                              <span className="truncate max-w-[150px]" title={product.name}>{product.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{product.category}</TableCell>
-                          <TableCell>{product.material}</TableCell>
-                          <TableCell className="text-right">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              product.stock > 5 ? 'bg-success/20 text-success' : 
-                              product.stock > 0 ? 'bg-orange-500/20 text-orange-500' : 'bg-destructive/20 text-destructive'
-                            }`}>
-                              {product.stock}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">S/. {product.price.toFixed(2)}</TableCell>
-                          <TableCell className="text-center">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-primary hover:bg-primary/20"
-                              onClick={() => {
-                                setEditingId(product.id)
-                                setFormData({
-                                  name: product.name,
-                                  category: product.category,
-                                  size: product.size || "",
-                                  material: product.material || "",
-                                  color: product.color || "",
-                                  stock: product.stock,
-                                  price: product.price,
-                                  image_url: product.image_url || ""
-                                })
-                                setImageFile(null)
-                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-destructive hover:bg-destructive/20"
-                              onClick={() => {
-                                if(confirm("¿Estás seguro de eliminar este producto?")) {
-                                  deleteProduct.mutate(product.id)
-                                }
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                totalStock > 5 ? 'bg-success/20 text-success' : 
+                                totalStock > 0 ? 'bg-orange-500/20 text-orange-500' : 'bg-destructive/20 text-destructive'
+                              }`}>
+                                {totalStock}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {getPriceRange(productVariants)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-primary hover:bg-primary/20"
+                                onClick={() => {
+                                  setEditingId(product.id)
+                                  setFormData({
+                                    name: product.name,
+                                    category: product.category,
+                                    material: product.material || "",
+                                    color: product.color || "",
+                                    image_url: product.image_url || ""
+                                  })
+                                  setVariants(productVariants.length > 0 ? productVariants : [{ id: crypto.randomUUID(), size: "Única", price: product.price || 0, stock: product.stock || 0 }])
+                                  setImageFile(null)
+                                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive hover:bg-destructive/20"
+                                onClick={() => {
+                                  if(confirm("¿Estás seguro de eliminar este producto?")) {
+                                    deleteProduct.mutate(product.id)
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     )}
                   </TableBody>
                 </Table>

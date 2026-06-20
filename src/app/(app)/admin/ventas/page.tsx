@@ -17,6 +17,7 @@ type OrderItem = {
   product_id: string
   quantity: number
   unit_price: number
+  selected_variant?: { id: string, size: string } | null
   products?: {
     name: string
     image_url: string
@@ -58,6 +59,7 @@ export default function VentasPage() {
             product_id,
             quantity,
             unit_price,
+            selected_variant,
             products (
               name,
               image_url
@@ -107,9 +109,22 @@ export default function VentasPage() {
       if (status === 'Anulado' && order.status !== 'Anulado') {
         for (const item of order.order_items) {
           if (item.product_id) {
-            const { data: prod } = await supabase.from('products').select('stock').eq('id', item.product_id).single()
+            const { data: prod } = await supabase.from('products').select('stock, variants').eq('id', item.product_id).single()
             if (prod) {
-              await supabase.from('products').update({ stock: prod.stock + item.quantity }).eq('id', item.product_id)
+              let updatedVariants = prod.variants || []
+              let updatedTotalStock = prod.stock + item.quantity
+              
+              if (item.selected_variant?.id) {
+                updatedVariants = updatedVariants.map((v: any) => {
+                  if (v.id === item.selected_variant?.id) {
+                    return { ...v, stock: v.stock + item.quantity }
+                  }
+                  return v
+                })
+                updatedTotalStock = updatedVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0)
+              }
+              
+              await supabase.from('products').update({ stock: updatedTotalStock, variants: updatedVariants }).eq('id', item.product_id)
             }
           }
         }
@@ -134,9 +149,22 @@ export default function VentasPage() {
     mutationFn: async ({ order, item }: { order: Order, item: OrderItem }) => {
       // 1. Devolver stock del producto individual
       if (item.product_id) {
-        const { data: prod } = await supabase.from('products').select('stock').eq('id', item.product_id).single()
+        const { data: prod } = await supabase.from('products').select('stock, variants').eq('id', item.product_id).single()
         if (prod) {
-          await supabase.from('products').update({ stock: prod.stock + item.quantity }).eq('id', item.product_id)
+          let updatedVariants = prod.variants || []
+          let updatedTotalStock = prod.stock + item.quantity
+          
+          if (item.selected_variant?.id) {
+            updatedVariants = updatedVariants.map((v: any) => {
+              if (v.id === item.selected_variant?.id) {
+                return { ...v, stock: v.stock + item.quantity }
+              }
+              return v
+            })
+            updatedTotalStock = updatedVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0)
+          }
+          
+          await supabase.from('products').update({ stock: updatedTotalStock, variants: updatedVariants }).eq('id', item.product_id)
         }
       }
 
@@ -327,7 +355,10 @@ export default function VentasPage() {
                                               <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center text-[10px] text-muted-foreground shrink-0">N/A</div>
                                             )}
                                             <div className="min-w-0">
-                                              <p className="font-semibold text-sm truncate">{item.products?.name || 'Producto eliminado del sistema'}</p>
+                                              <p className="font-semibold text-sm truncate">
+                                                {item.products?.name || 'Producto eliminado'}
+                                                {item.selected_variant?.size && <span className="text-xs text-muted-foreground ml-2 px-2 py-0.5 bg-muted rounded-md border border-border">Talla {item.selected_variant.size}</span>}
+                                              </p>
                                               <p className="text-xs text-muted-foreground">Cantidad: {item.quantity} × S/. {Number(item.unit_price).toFixed(2)}</p>
                                             </div>
                                           </div>

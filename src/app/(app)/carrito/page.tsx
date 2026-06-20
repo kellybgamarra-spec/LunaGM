@@ -53,7 +53,8 @@ export default function CarritoPage() {
         order_id: orderData.id,
         product_id: item.id,
         quantity: item.quantity,
-        unit_price: item.price
+        unit_price: item.price,
+        selected_variant: { id: item.selected_variant_id, size: item.selected_size }
       }))
       
       const { error: itemsError } = await supabase
@@ -62,21 +63,29 @@ export default function CarritoPage() {
         
       if (itemsError) throw itemsError
       
-      // 4. Actualizar el stock de los productos
-      // En un entorno de producción real, esto se haría mediante una RPC (función de BD)
-      // para evitar condiciones de carrera, pero para este caso lo haremos simple:
+      // 4. Actualizar el stock de los productos y sus variantes
       for (const item of items) {
-        // Primero obtener stock actual
         const { data: product } = await supabase
           .from('products')
-          .select('stock')
+          .select('stock, variants')
           .eq('id', item.id)
           .single()
           
         if (product) {
+          // Descontar de la variante específica
+          const updatedVariants = product.variants?.map((v: any) => {
+            if (v.id === item.selected_variant_id) {
+              return { ...v, stock: Math.max(0, v.stock - item.quantity) }
+            }
+            return v
+          }) || []
+          
+          // Actualizar también el stock total por compatibilidad
+          const updatedTotalStock = updatedVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0)
+          
           await supabase
             .from('products')
-            .update({ stock: product.stock - item.quantity })
+            .update({ stock: updatedTotalStock, variants: updatedVariants })
             .eq('id', item.id)
         }
       }
@@ -128,7 +137,7 @@ export default function CarritoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {items.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row items-center gap-4 py-4 border-b last:border-0 border-border">
+                <div key={item.cartItemId} className="flex flex-col sm:flex-row items-center gap-4 py-4 border-b last:border-0 border-border">
                   <div className="relative w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0">
                     {item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -140,6 +149,7 @@ export default function CarritoPage() {
                   
                   <div className="flex-1 text-center sm:text-left">
                     <h4 className="font-bold">{item.name}</h4>
+                    <div className="text-xs text-muted-foreground mt-0.5">Talla: {item.selected_size}</div>
                     <div className="text-primary font-semibold mt-1">S/. {item.price.toFixed(2)}</div>
                   </div>
                   
@@ -149,7 +159,7 @@ export default function CarritoPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 rounded-r-none"
-                        onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        onClick={() => updateQuantity(item.cartItemId, Math.max(1, item.quantity - 1))}
                         disabled={item.quantity <= 1}
                       >
                         <Minus className="h-3 w-3" />
@@ -159,7 +169,7 @@ export default function CarritoPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 rounded-l-none"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -169,7 +179,7 @@ export default function CarritoPage() {
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(item.cartItemId)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

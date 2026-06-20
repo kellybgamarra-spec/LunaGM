@@ -1,11 +1,14 @@
 import { create } from 'zustand'
 
 export interface CartItem {
+  cartItemId: string
   id: string
   name: string
   price: number
   quantity: number
   image_url?: string
+  selected_variant_id: string
+  selected_size: string
 }
 
 interface CartStore {
@@ -21,21 +24,21 @@ interface CartStore {
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   addItem: (item) => set((state) => {
-    const existingItem = state.items.find((i) => i.id === item.id)
+    const existingItem = state.items.find((i) => i.cartItemId === item.cartItemId)
     if (existingItem) {
       return {
         items: state.items.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.cartItemId === item.cartItemId ? { ...i, quantity: i.quantity + 1 } : i
         ),
       }
     }
     return { items: [...state.items, { ...item, quantity: 1 }] }
   }),
-  removeItem: (id) => set((state) => ({
-    items: state.items.filter((i) => i.id !== id)
+  removeItem: (cartItemId) => set((state) => ({
+    items: state.items.filter((i) => i.cartItemId !== cartItemId)
   })),
-  updateQuantity: (id, quantity) => set((state) => ({
-    items: state.items.map((i) => i.id === id ? { ...i, quantity } : i)
+  updateQuantity: (cartItemId, quantity) => set((state) => ({
+    items: state.items.map((i) => i.cartItemId === cartItemId ? { ...i, quantity } : i)
   })),
   clearCart: () => set({ items: [] }),
   getTotal: () => {
