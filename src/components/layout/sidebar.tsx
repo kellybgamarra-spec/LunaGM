@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { 
   Store, 
   ShoppingCart, 
@@ -15,6 +15,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/lib/supabase/client"
 
 const navItems = [
   { name: "Catálogo", href: "/catalogo", icon: Store, roles: ["cliente", "admin"] },
@@ -29,29 +31,67 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   
-  // TO DO: Obtener el rol del usuario autenticado desde Supabase
-  const userRole = "admin" 
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['current_user_profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return null
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+        
+      if (error) throw error
+      return data
+    }
+  })
+
+  // Defaults and derived values
+  const userRole = profile?.role || "cliente"
+  const userName = profile?.full_name || "Usuario"
+  const userInitials = userName.substring(0, 2).toUpperCase()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <aside className="hidden lg:flex flex-col w-64 glass border-r h-screen sticky top-0 z-40 transition-all duration-300">
       <div className="p-6 flex items-center gap-3">
         {/* Placeholder for Logo */}
-        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl">
+        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-[0_4px_10px_rgba(0,0,0,0.15)]">
           L
         </div>
-        <span className="font-bold text-xl tracking-tight">LunaGM</span>
+        <span className="font-bold text-xl tracking-tight text-foreground">LunaGM</span>
       </div>
 
       <div className="px-4 pb-6">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10 shadow-sm">
           <Avatar className="h-10 w-10 border-2 border-primary/20">
             <AvatarImage src="" />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">AD</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">{userInitials}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-semibold truncate">Admin User</span>
-            <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full w-max mt-1">Admin</span>
+            {isLoading ? (
+              <div className="h-4 w-20 bg-muted animate-pulse rounded mb-1"></div>
+            ) : (
+              <span className="text-sm font-semibold truncate text-foreground">{userName}</span>
+            )}
+            
+            {isLoading ? (
+              <div className="h-3 w-12 bg-muted animate-pulse rounded mt-1"></div>
+            ) : (
+              <span className={cn("text-xs px-2 py-0.5 rounded-full w-max mt-1 font-bold", 
+                userRole === 'admin' ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary-foreground"
+              )}>
+                {userRole === 'admin' ? 'Administrador' : 'Cliente'}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -66,7 +106,7 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive 
-                  ? "bg-primary/10 text-primary border border-primary/20" 
+                  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm" 
                   : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
               )}
             >
@@ -78,7 +118,10 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 mt-auto">
-        <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+        >
           <LogOut className="w-5 h-5" />
           Cerrar Sesión
         </button>
