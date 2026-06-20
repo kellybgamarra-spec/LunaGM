@@ -250,7 +250,7 @@ export default function ProductosPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="category">Categoría</Label>
-                <Select value={formData.category} onValueChange={(val) => setFormData({...formData, category: val})}>
+                <Select value={formData.category} onValueChange={(val) => setFormData({...formData, category: val || "Collares"})}>
                   <SelectTrigger className="glass-input">
                     <SelectValue placeholder="Seleccione categoría" />
                   </SelectTrigger>

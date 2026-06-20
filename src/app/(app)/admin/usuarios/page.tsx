@@ -102,7 +102,7 @@ export default function UsuariosPage() {
                         <TableCell>
                           <Select 
                             defaultValue={user.role} 
-                            onValueChange={(val) => updateRole.mutate({ id: user.id, newRole: val })}
+                            onValueChange={(val) => { if(val) updateRole.mutate({ id: user.id, newRole: val }) }}
                           >
                             <SelectTrigger className="h-8 glass-input">
                               <SelectValue />

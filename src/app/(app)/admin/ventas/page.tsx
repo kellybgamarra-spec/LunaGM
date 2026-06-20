@@ -239,7 +239,7 @@ export default function VentasPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "Todos")}>
               <SelectTrigger className="w-full sm:w-[140px] glass-input">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
@@ -313,6 +313,7 @@ export default function VentasPage() {
                               <Select 
                                 value={order.status} 
                                 onValueChange={(val) => {
+                                  if (!val) return;
                                   if (val === 'Anulado' && order.status !== 'Anulado') {
                                     setOrderToAnnul({ order, status: val })
                                   } else {

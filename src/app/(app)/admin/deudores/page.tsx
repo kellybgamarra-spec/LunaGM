@@ -110,7 +110,7 @@ export default function DeudoresPage() {
                           <Select 
                             value="Debe" 
                             onValueChange={(val) => {
-                              if (val !== 'Debe') {
+                              if (val && val !== 'Debe') {
                                 setOrderToConfirm({ id: order.id, status: val, amount: order.total_amount })
                               }
                             }}
