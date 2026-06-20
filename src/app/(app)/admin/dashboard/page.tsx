@@ -105,7 +105,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 bg-background/50 p-2 rounded-lg border border-border/50">
           <Calendar className="w-5 h-5 text-muted-foreground" />
-          <Select value={monthFilter} onValueChange={setMonthFilter}>
+          <Select value={monthFilter} onValueChange={(val) => setMonthFilter(val || "all")}>
             <SelectTrigger className="w-[180px] border-0 bg-transparent shadow-none focus:ring-0">
               <SelectValue placeholder="Filtrar por mes" />
             </SelectTrigger>
