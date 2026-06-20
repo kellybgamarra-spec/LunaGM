@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* LunaGM Custom Brand Colors */
+  --brand-primary: #a35d6a;
+  --brand-primary-hover: #8c4a56;
+  --brand-secondary: #d4a5ad;
+  --brand-success: #10b981;
+  --brand-danger: #ef4444;
+  
+  --brand-bg-base: #f9f2f3;
+  --brand-bg-surface: rgba(255, 255, 255, 0.7);
+  --brand-bg-surface-hover: rgba(255, 255, 255, 0.9);
+  --brand-bg-input: rgba(255, 255, 255, 0.5);
+  
+  --brand-text-main: #3d262a;
+  --brand-text-muted: #82666b;
+  --brand-border: rgba(163, 93, 106, 0.15);
+  --brand-glass-border: 1px solid rgba(255, 255, 255, 0.6);
+  --brand-glass-shadow: 0 8px 32px 0 rgba(163, 93, 106, 0.1);
+
+  /* Shadcn UI Variables mapped to our Light Theme */
+  --background: #f9f2f3;
+  --foreground: #3d262a;
+  
+  --card: rgba(255, 255, 255, 0.7);
+  --card-foreground: #3d262a;
+  
+  --popover: rgba(255, 255, 255, 0.95);
+  --popover-foreground: #3d262a;
+  
+  --primary: #a35d6a;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #d4a5ad;
+  --secondary-foreground: #3d262a;
+  
+  --muted: rgba(163, 93, 106, 0.1);
+  --muted-foreground: #82666b;
+  
+  --accent: rgba(163, 93, 106, 0.1);
+  --accent-foreground: #a35d6a;
+  
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  
+  --border: rgba(163, 93, 106, 0.15);
+  --input: rgba(255, 255, 255, 0.5);
+  --ring: rgba(163, 93, 106, 0.3);
+  
+  --radius: 0.75rem;
+
+  --sidebar: rgba(255, 255, 255, 0.7);
+  --sidebar-foreground: #3d262a;
+  --sidebar-primary: #a35d6a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(163, 93, 106, 0.1);
+  --sidebar-accent-foreground: #a35d6a;
+  --sidebar-border: rgba(163, 93, 106, 0.15);
+  --sidebar-ring: rgba(163, 93, 106, 0.3);
+}
+
+.dark {
+  /* LunaGM Custom Brand Colors - Dark */
+  --brand-primary: #8b5cf6;
+  --brand-primary-hover: #7c3aed;
+  --brand-secondary: #ec4899;
+  
+  --brand-bg-base: #0f172a;
+  --brand-bg-surface: rgba(30, 41, 59, 0.6);
+  --brand-bg-surface-hover: rgba(30, 41, 59, 0.8);
+  --brand-bg-input: rgba(15, 23, 42, 0.5);
+  
+  --brand-text-main: #f8fafc;
+  --brand-text-muted: #94a3b8;
+  --brand-border: rgba(255, 255, 255, 0.1);
+  --brand-glass-border: 1px solid rgba(255, 255, 255, 0.05);
+  --brand-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+  /* Shadcn UI Variables mapped to our Dark Theme */
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  
+  --card: rgba(30, 41, 59, 0.6);
+  --card-foreground: #f8fafc;
+  
+  --popover: rgba(30, 41, 59, 0.95);
+  --popover-foreground: #f8fafc;
+  
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #ec4899;
+  --secondary-foreground: #ffffff;
+  
+  --muted: rgba(255, 255, 255, 0.05);
+  --muted-foreground: #94a3b8;
+  
+  --accent: rgba(255, 255, 255, 0.05);
+  --accent-foreground: #8b5cf6;
+  
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(15, 23, 42, 0.5);
+  --ring: rgba(139, 92, 246, 0.3);
+
+  --sidebar: rgba(30, 41, 59, 0.6);
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.05);
+  --sidebar-accent-foreground: #8b5cf6;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: rgba(139, 92, 246, 0.3);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), sans-serif;
+    min-height: 100vh;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(163, 93, 106, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(212, 165, 173, 0.25) 0px, transparent 50%);
+    background-attachment: fixed;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .dark body {
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+  }
+}
+
+/* Glassmorphism Utilities */
+@layer utilities {
+  .glass {
+    @apply bg-card backdrop-blur-xl border border-white/60 shadow-[0_8px_32px_0_rgba(163,93,106,0.1)];
+  }
+  .dark .glass {
+    @apply bg-card backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+  }
+  
+  .glass-input {
+    @apply bg-input border border-border focus:border-primary focus:ring-primary focus:bg-card transition-all;
+  }
+}
