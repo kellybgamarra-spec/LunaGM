@@ -90,7 +90,7 @@ export default function DashboardPage() {
     .slice(0, 5) // Top 5
 
   // 4. Productos con poco stock (Menos de 10 unidades)
-  const dataLowStock = stats?.products
+  const dataLowStock = (stats?.products || [])
     .filter(p => p.stock > 0 && p.stock <= 10)
     .map(p => ({ name: p.name, stock: p.stock }))
     .sort((a, b) => a.stock - b.stock)
