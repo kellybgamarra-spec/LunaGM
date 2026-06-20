@@ -89,7 +89,7 @@ function ProductCard({ product }: { product: Product }) {
         
         {variants.length > 1 ? (
           <div className="mt-auto space-y-3">
-            <Select value={selectedVariantId} onValueChange={setSelectedVariantId}>
+            <Select value={selectedVariantId} onValueChange={(val) => { if(val) setSelectedVariantId(val) }}>
               <SelectTrigger className="w-full glass-input h-9 text-sm">
                 <SelectValue placeholder="Selecciona una talla" />
               </SelectTrigger>
